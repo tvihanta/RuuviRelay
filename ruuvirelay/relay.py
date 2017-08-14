@@ -4,10 +4,6 @@ from ruuvitag_sensor.common import Config
 import datetime
 import dataset
 import yaml
-import logging
-# import pudb; pu.db
-
-log = logging.getLogger(__name__)
 
 previousData = None
 cfg = None
@@ -32,24 +28,6 @@ def openConn():
                                                     cfg['mysql']['host'],
                                                     cfg['mysql']['db']))
 
-def listenForData():
-
-    db = openConn()
-    config = Config()
-    config.device = 'hci0'
-
-    def handle_data(found_data):
-        # global previousData
-
-        # if previousData is None or found_data != previousData:
-        print('Timestamp: {:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now()))
-        print('MAC ' + found_data[0])
-        print(found_data[1])
-        previousData = found_data
-
-    RuuviTagSensor.get_datas(handle_data, config=config)
-
-
 def sendData(db=openConn()):
     table = db['device']
     logTable = db['ruuvi_log']
@@ -66,6 +44,7 @@ def sendData(db=openConn()):
 
 def trimDb(db=openConn()):
     ''' trim the db table to only hold TRIM_ROWS_TO amount of rows per mac in devices -table '''
+
     # create table saved_ids(id int);
     # insert into saved_ids (id) (SELECT ruuvi_log_id FROM ruuvi_log ORDER BY created desc LIMIT 10);
     # delete from ruuvi_log where ruuvi_log_id not in (select id from saved_ids);
@@ -85,8 +64,7 @@ def trimDb(db=openConn()):
                 print(e)
         res = db.query('delete from ruuvi_log where ruuvi_log_id not in (select id from saved_ids)')
         res = db.query('DROP TABLE saved_ids')
-    else:
-        log.info("no need to trim")
+
 
 
 def insertMacs(macs,db=openConn()):

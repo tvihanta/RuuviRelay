@@ -8,9 +8,9 @@ def save_log():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', dest='insertMacs', nargs='*', help='insert trusted mac addresses')
-    parser.add_argument('-s', '--save', action='store_true', help='save current logs to db')
-    parser.add_argument('-t', '--trim', action='store_true', help='trim older logs from db')
+    parser.add_argument('-i', dest='insertMacs', nargs='*', help='Insert trusted mac addresses. Accepts an array of macs')
+    parser.add_argument('-s', '--save', action='store_true', help='Save current logs to db')
+    parser.add_argument('-t', '--trim', action='store_true', help='Trim older logs from db')
 
     args = parser.parse_args()
 
