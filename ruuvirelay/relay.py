@@ -1,7 +1,7 @@
 from ruuvitag_sensor.ruuvi import RuuviTagSensor
 from ruuvitag_sensor.common import Config
 
-import datetime
+from datetime import datetime
 import dataset
 import yaml
 
@@ -21,7 +21,7 @@ TRIM_ROWS_TO = 100
 #  'acceleration_z': 1011,
 #  'humidity': 52.5}
 def openConn():
-    with open('/home/ippe/proj/ruuvi/config.yaml', 'r') as ymlfile:
+    with open('/home/ippe/dev/RuuviRelay/config.yaml', 'r') as ymlfile:
         cfg = yaml.load(ymlfile)
     return dataset.connect('mysql://%s:%s@%s/%s' %( cfg['mysql']['user'],
                                                     cfg['mysql']['passwd'],
@@ -32,15 +32,20 @@ def sendData(db=openConn()):
     table = db['device']
     logTable = db['ruuvi_log']
     rows = table.all()
-    macs = [{'mac': x['mac'], 'device_id': x['device_id']} for x in rows]
+    macs = [{'mac': x['mac'], 'id': x['id']} for x in rows]
+    print(macs)
     data = RuuviTagSensor.get_data_for_sensors([ mac['mac'] for mac in macs], search_duratio_sec=5)
+    print(data)
     for mac in macs:
-        if data[mac["mac"]] != None:
-            data[mac["mac"]]['device_id'] = mac['device_id']
+        if mac['mac'] in data and data[mac["mac"]] != None:
+            #data[mac["mac"]]['mac'] = mac['mac']
+            data[mac["mac"]]["created"] = datetime.now()
             try:
                 logTable.insert(data[mac["mac"]])
             except Exception as e:
                 print(e)
+        else:
+            print("no data")
 
 def trimDb(db=openConn()):
     ''' trim the db table to only hold TRIM_ROWS_TO amount of rows per mac in devices -table '''
@@ -58,8 +63,8 @@ def trimDb(db=openConn()):
         for mac in macTable.all():
             try:
                 res = db.query('insert into saved_ids (id) (SELECT ruuvi_log_id \
-                               FROM ruuvi_log WHERE device_id = %s ORDER BY \
-                               created desc LIMIT %s);' % ( mac['device_id'], TRIM_ROWS_TO ))
+                               FROM ruuvi_log WHERE id = %s ORDER BY \
+                               created desc LIMIT %s);' % ( mac['id'], TRIM_ROWS_TO ))
             except Exception as e:
                 print(e)
         res = db.query('delete from ruuvi_log where ruuvi_log_id not in (select id from saved_ids)')
