@@ -21,7 +21,10 @@ TRIM_ROWS_TO = 100
 #  'acceleration_z': 1011,
 #  'humidity': 52.5}
 def openConn():
-    with open('/home/ippe/dev/RuuviRelay/config.yaml', 'r') as ymlfile:
+
+    import os, sys
+    path = os.path.dirname(os.path.realpath(sys.argv[0]))
+    with open('%s/config.yaml' %path, 'r') as ymlfile:
         cfg = yaml.load(ymlfile)
     return dataset.connect('mysql://%s:%s@%s/%s' %( cfg['mysql']['user'],
                                                     cfg['mysql']['passwd'],
@@ -29,6 +32,7 @@ def openConn():
                                                     cfg['mysql']['db']))
 
 def sendData(db=openConn()):
+
     table = db['device']
     logTable = db['ruuvi_log']
     rows = table.all()
@@ -38,7 +42,7 @@ def sendData(db=openConn()):
     print(data)
     for mac in macs:
         if mac['mac'] in data and data[mac["mac"]] != None:
-            #data[mac["mac"]]['mac'] = mac['mac']
+            data[mac["mac"]]['device_id'] = mac['id']
             data[mac["mac"]]["created"] = datetime.now()
             try:
                 logTable.insert(data[mac["mac"]])
@@ -55,6 +59,7 @@ def trimDb(db=openConn()):
     # delete from ruuvi_log where ruuvi_log_id not in (select id from saved_ids);
     # drop table saved_ids;
 
+    res = db.query('DROP TABLE saved_ids')
     logs = db['ruuvi_log'].count()
     macTable = db['device']
     rows = macTable.count()
@@ -62,12 +67,12 @@ def trimDb(db=openConn()):
         res = db.query('create table saved_ids(id int)')
         for mac in macTable.all():
             try:
-                res = db.query('insert into saved_ids (id) (SELECT ruuvi_log_id \
-                               FROM ruuvi_log WHERE id = %s ORDER BY \
+                res = db.query('insert into saved_ids (id) (SELECT id \
+                               FROM ruuvi_log WHERE device_id = %s ORDER BY \
                                created desc LIMIT %s);' % ( mac['id'], TRIM_ROWS_TO ))
             except Exception as e:
                 print(e)
-        res = db.query('delete from ruuvi_log where ruuvi_log_id not in (select id from saved_ids)')
+        res = db.query('delete from ruuvi_log where id not in (select id from saved_ids)')
         res = db.query('DROP TABLE saved_ids')
 
 

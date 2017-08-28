@@ -15,7 +15,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.insertMacs:
-        macs = ['FF:74:4E:5D:1D:9D'] # for testing
+        macs = args.insertMacs# for testing
         macDict = {"mac":x for x in macs}
         insertMacs(macDict)
     elif args.save:
